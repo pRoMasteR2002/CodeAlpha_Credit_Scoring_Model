@@ -1,3 +1,4 @@
+# Import necessary libraries
 import streamlit as st
 import pandas as pd
 import seaborn as sns
@@ -9,16 +10,34 @@ from sklearn.cluster import KMeans
 import io
 import os
 
-# Set the LOKY_MAX_CPU_COUNT environment variable
+# Set the LOKY_MAX_CPU_COUNT environment variable to optimize performance
 os.environ['LOKY_MAX_CPU_COUNT'] = '4'  # You can adjust this number based on your system
 
-# Load and preprocess the data from the uploaded CSV file
+# Function to load and preprocess the data from the uploaded CSV file
 def load_and_preprocess_data(uploaded_file):
+    """
+    Load the data from the uploaded CSV file and perform initial preprocessing steps.
+    
+    Parameters:
+    uploaded_file (file): The uploaded CSV file containing the data.
+    
+    Returns:
+    data (DataFrame): The preprocessed data.
+    """
     data = pd.read_csv(uploaded_file)
     return data
 
-# Generate remarks for descriptive statistics
+# Function to generate remarks for descriptive statistics
 def generate_descriptive_stats_remarks(desc_stats):
+    """
+    Generate remarks based on the descriptive statistics of the data.
+    
+    Parameters:
+    desc_stats (DataFrame): The descriptive statistics of the data.
+    
+    Returns:
+    remarks (str): The generated remarks.
+    """
     remarks = []
     avg_balance = desc_stats.loc['mean', 'Balance']
     if avg_balance > 2000:
@@ -35,8 +54,17 @@ def generate_descriptive_stats_remarks(desc_stats):
     
     return "\n".join(remarks)
 
-# Generate remarks for balance distribution
+# Function to generate remarks for balance distribution
 def generate_balance_distribution_remarks(data):
+    """
+    Generate remarks based on the balance distribution of the data.
+    
+    Parameters:
+    data (DataFrame): The data containing the balance information.
+    
+    Returns:
+    remarks (str): The generated remarks.
+    """
     skewness = data['Balance'].skew()
     kurtosis = data['Balance'].kurtosis()
     median = data['Balance'].median()
@@ -60,8 +88,17 @@ def generate_balance_distribution_remarks(data):
     
     return "\n".join(remarks)
 
-# Generate remarks for correlation heatmap
+# Function to generate remarks for correlation heatmap
 def generate_correlation_remarks(correlation_matrix):
+    """
+    Generate remarks based on the correlation heatmap of the data.
+    
+    Parameters:
+    correlation_matrix (DataFrame): The correlation matrix of the data.
+    
+    Returns:
+    remarks (str): The generated remarks.
+    """
     remarks = []
     income_balance_corr = correlation_matrix.loc['Income', 'Balance']
     if abs(income_balance_corr) > 0.7:
@@ -81,8 +118,17 @@ def generate_correlation_remarks(correlation_matrix):
     
     return "\n".join(remarks)
 
-# Generate remarks for balance by student status
+# Function to generate remarks for balance by student status
 def generate_student_balance_remarks(data):
+    """
+    Generate remarks based on the balance distribution by student status.
+    
+    Parameters:
+    data (DataFrame): The data containing the balance and student status information.
+    
+    Returns:
+    remarks (str): The generated remarks.
+    """
     remarks = []
     student_mean_balance = data.groupby('Student')['Balance'].mean()
     student_median_balance = data.groupby('Student')['Balance'].median()
@@ -104,11 +150,28 @@ def generate_student_balance_remarks(data):
 
 # Function to display remarks in a structured format
 def display_remarks(remarks):
+    """
+    Display the remarks in a structured format.
+    
+    Parameters:
+    remarks (list): The list of remarks to display.
+    """
     for remark in remarks:
         st.write("- " + remark)
 
-# Generate overall insights
-def generate_overall_insights(data, desc_stats, correlation_matrix):
+# Function to generate overall insights
+def generate_overall_insights(data, desc_stats, correlation_matrix ):
+    """
+    Generate overall insights based on the data and descriptive statistics.
+    
+    Parameters:
+    data (DataFrame): The data containing the balance and income information.
+    desc_stats (DataFrame): The descriptive statistics of the data.
+    correlation_matrix (DataFrame): The correlation matrix of the data.
+    
+    Returns:
+    insights (list): The generated insights.
+    """
     insights = []
     
     # Overall balance insights
@@ -122,7 +185,7 @@ def generate_overall_insights(data, desc_stats, correlation_matrix):
     
     # Student vs Non-student insights
     if 'Student' in data.columns:
-        student_prop = (data['Student'] == 'Yes').mean()
+        student_prop = (data['Student'] == ' Yes').mean()
         insights.append(f"Students make up {student_prop:.1%} of the customer base. {'This significant student presence suggests tailored products or services might be beneficial.' if student_prop > 0.3 else 'The relatively small student population might not warrant specific student-focused products.'}")
     
     # Age insights if available
@@ -139,6 +202,9 @@ def generate_overall_insights(data, desc_stats, correlation_matrix):
 
 # Streamlit app
 def main():
+    """
+    The main function of the Streamlit app.
+    """
     st.title('Credit Data Analysis')
 
     # File uploader
@@ -281,7 +347,7 @@ def main():
             if avg_credit_score > 700:
                 credit_score_remarks.append("The average credit score is good, indicating a generally creditworthy customer base. This may allow for more competitive loan offerings and lower default risks.")
             elif avg_credit_score > 650:
-                credit_score_remarks.append("The average credit score is fair, suggesting a moderate level of credit risk. Targeted credit improvement programs could be beneficial.")
+                credit_score_remarks.append("The average credit score is fair, suggesting a moderate level of credit risk. Targeted credit improvement programs could be beneficial .")
             else:
                 credit_score_remarks.append("The average credit score is below average, indicating higher credit risk. Consider implementing credit education programs and secured credit products.")
             
@@ -385,52 +451,5 @@ def main():
         ]
         display_remarks(recommendations)
 
-        # Export results
-        if st.button('Export Analysis Results'):
-            export_results(data, desc_stats, correlation_matrix, overall_insights, recommendations)
-            st.success('Analysis results have been exported successfully!')
-
-def export_results(data, desc_stats, correlation_matrix, overall_insights, recommendations):
-    # Create a BytesIO object to store the CSV data
-    output = io.StringIO()
-    
-    # Write descriptive statistics
-    output.write("Descriptive Statistics\n")
-    desc_stats.to_csv(output)
-    output.write("\n\n")
-    
-    # Write correlation matrix
-    output.write("Correlation Matrix\n")
-    correlation_matrix.to_csv(output)
-    output.write("\n\n")
-    
-    # Write insights and recommendations
-    output.write("Overall Insights\n")
-    for insight in overall_insights:
-        output.write(f"{insight}\n")
-    output.write("\n")
-    
-    output.write("Recommendations\n")
-    for recommendation in recommendations:
-        output.write(f"{recommendation}\n")
-    output.write("\n\n")
-    
-    # Add summary statistics
-    output.write("Summary Statistics\n")
-    output.write(f"Total Customers: {len(data)}\n")
-    output.write(f"Average Balance: ${data['Balance'].mean():.2f}\n")
-    output.write(f"Average Age: {data['Age'].mean():.1f}\n")
-    output.write(f"Average Credit Score: {data['CreditScore'].mean():.0f}\n")
-    
-    # Get the value of the StringIO buffer
-    csv_data = output.getvalue()
-    
-    # Provide download button
-    st.download_button(
-        label="Download CSV Report",
-        data=csv_data,
-        file_name="credit_data_analysis_report.csv",
-        mime="text/csv"
-    )
 if __name__ == '__main__':
     main()
